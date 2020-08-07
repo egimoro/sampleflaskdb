@@ -38,8 +38,8 @@ $(function () {
                       fullName.empty();
                       $(data).each(function (index, full) {
                       
-                          fullName.append(
-                           `<tr><td>` + full.firstName + `</td><td>` +
+                          fullName.append( `<tr><td>` + full.id +`</td><td>`
+                            + full.firstName + `</td><td>` +
                            full.lastName + `</td></tr>`
                           )
                                

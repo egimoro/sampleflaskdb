@@ -28,7 +28,7 @@ class Process(db.Model):
 
 class ProcessSchema(ma.Schema):
     class Meta:
-        fields = ("firstName", "lastName")
+        fields = ("id","firstName", "lastName")
 
 
 process_schema = ProcessSchema()
