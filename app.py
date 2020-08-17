@@ -1,7 +1,6 @@
 import os
-from flask import Flask,render_template, request, jsonify
+from flask import Flask,render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-from flask_marshmallow import  Marshmallow
 from flask_migrate import Migrate
 
 app = Flask(__name__)
@@ -9,8 +8,6 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("database")
 
 db = SQLAlchemy(app)
-
-ma = Marshmallow(app)
 
 migrate = Migrate(app, db)
 
@@ -26,26 +23,18 @@ class Process(db.Model):
         self.firstName = firstName
         self.lastName = lastName
 
-class ProcessSchema(ma.Schema):
-    class Meta:
-        fields = ("id","firstName", "lastName")
-
-
-process_schema = ProcessSchema()
-processes_schema = ProcessSchema(many=True)
 
 
 @app.route('/')
-def signUp():
-    return render_template('index.html')
+def index():
+    fullNames = Process.query.all()
+
+    return render_template('index.html', fullNames=fullNames)
 
 
-@app.route('/process',methods=['POST'])
-def add_process():
-
-
+@app.route('/add', methods=['POST'])
+def add():
     firstName = request.form['firstName']
-
     lastName = request.form['lastName']
 
     fullName = Process(firstName, lastName)
@@ -53,20 +42,69 @@ def add_process():
 
     db.session.add(fullName)
     db.session.commit()
-    result = process_schema.dump(fullName)
 
 
-    return jsonify(result)
 
-@app.route('/process', methods=['GET'] )
-def get_process():
-    fullName = Process.query.all()
+    return redirect(url_for('index'))
 
-    result = processes_schema.dump(fullName)
 
-    return jsonify(result)
+def get_process(id):
+    fullName = Process.query.get(id)
+
+    if fullName is None:
+        print("error not found")
+
+    return fullName
+
+@app.route('/update/<int:id>', methods=['POST'])
+def update(id):
+    fullName = get_process(id)
+
+    firstName = request.form['firstName']
+    lastName = request.form['lastName']
+
+    fullName.firstName = firstName
+    fullName.lastName = lastName
+
+    db.session.commit()
+
+    return redirect(url_for('index'))
+
+
+@app.route('/delete/<int:id>', methods=['POST'])
+def delete(id):
+    fullName = get_process(id)
+
+    firstName = request.form['firstName']
+    lastName = request.form['lastName']
+
+    db.session.delete(fullName)
+
+    db.session.commit()
+
+    return redirect(url_for('index'))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 if __name__== "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
