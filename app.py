@@ -1,91 +1,62 @@
 import os
-from flask import Flask,render_template, request, redirect, url_for
+from flask import Flask,render_template, request, redirect, jsonify, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_marshmallow import Marshmallow
 
 app = Flask(__name__)
-
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("database")
+app.config["SQLALCHEMY_DATABASE_URI"]= os.environ.get('database')
 
 db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
 
+ma = Marshmallow(app)
+
 class Process(db.Model):
-
     id = db.Column(db.Integer, primary_key=True)
+    firstName = db.Column(db.String(255))
+    lastName = db.Column(db.String(255))
 
-    firstName = db.Column(db.String(250))
+class ProcessSchema(ma.Schema):
+    class Meta:
+        fields = ("id", "firstName", "lastName")
 
-    lastName = db.Column(db.String(250))
-
-    def __init__(self, firstName, lastName):
-        self.firstName = firstName
-        self.lastName = lastName
-
-
+process_schema = ProcessSchema()
+processes_schema = ProcessSchema(many=True)
 
 @app.route('/')
 def index():
-    fullNames = Process.query.all()
-
-    return render_template('index.html', fullNames=fullNames)
+    return render_template('index.html')
 
 
-@app.route('/add', methods=['POST'])
-def add():
-    firstName = request.form['firstName']
-    lastName = request.form['lastName']
+@app.route('/add_process')
+def add_process():
 
-    fullName = Process(firstName, lastName)
+    firstName = request.args.get('firstName', 0, type=str)
 
+    lastName = request.args.get('lastName', 0, type=str)
+
+    fullName = Process(firstName=firstName, lastName=lastName)
 
     db.session.add(fullName)
-    db.session.commit()
-
-
-
-    return redirect(url_for('index'))
-
-
-def get_process(id):
-    fullName = Process.query.get(id)
-
-    if fullName is None:
-        print("error not found")
-
-    return fullName
-
-@app.route('/update/<int:id>', methods=['POST'])
-def update(id):
-    fullName = get_process(id)
-
-    firstName = request.form['firstName']
-    lastName = request.form['lastName']
-
-    fullName.firstName = firstName
-    fullName.lastName = lastName
 
     db.session.commit()
 
-    return redirect(url_for('index'))
+    result = process_schema.dump(fullName)
 
 
-@app.route('/delete/<int:id>', methods=['POST'])
-def delete(id):
-    fullName = get_process(id)
-
-    firstName = request.form['firstName']
-    lastName = request.form['lastName']
-
-    db.session.delete(fullName)
-
-    db.session.commit()
-
-    return redirect(url_for('index'))
+    return jsonify(result)
 
 
+@app.route('/get_process')
+def get_process():
 
+    fullNames = Process.query.all()
+
+    result = processes_schema.dump(fullNames)
+
+    return jsonify(result)
 
 
 
